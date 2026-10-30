@@ -101,13 +101,59 @@
         .tok-cm { color: #5c5470; font-style: italic; }
         .tok-var { color: #e2d9f3; }
 
-        /* Vignette & Ambient Glow Overlay */
+        /* Romantic night background: rose glow + stars + bokeh + drifting petals */
+        #code-backdrop { display: none; }
+
+        #love-bg {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+            background:
+                radial-gradient(ellipse 90% 55% at 50% 40%, rgba(255, 35, 105, 0.30) 0%, rgba(150, 20, 80, 0.14) 45%, rgba(0, 0, 0, 0) 75%),
+                radial-gradient(ellipse 95% 28% at 50% 82%, rgba(255, 70, 150, 0.34) 0%, rgba(0, 0, 0, 0) 70%),
+                linear-gradient(180deg, #07030f 0%, #12051d 38%, #2a0a26 72%, #3a0d2e 100%);
+        }
+
+        #love-bg-canvas {
+            position: absolute;
+            inset: 0;
+        }
+
+        /* Vignette Overlay (lighter so the background shows through) */
         #ambient-overlay {
             position: fixed;
             inset: 0;
             z-index: 2;
-            background: radial-gradient(circle at 50% 50%, rgba(255, 15, 75, 0.08) 0%, rgba(8, 4, 10, 0.65) 65%, rgba(5, 2, 7, 0.92) 100%);
+            background: radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0) 0%, rgba(8, 4, 10, 0.12) 60%, rgba(5, 2, 7, 0.55) 100%);
             pointer-events: none;
+        }
+
+        /* Credit text at the top */
+        .credit-top {
+            position: fixed;
+            left: 0;
+            right: 0;
+            top: calc(env(safe-area-inset-top, 0px) + 22px);
+            display: flex;
+            justify-content: center;
+            pointer-events: none;
+        }
+
+        .credit-top span {
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            font-weight: 600;
+            font-size: 1.05rem;
+            letter-spacing: 0.14em;
+            color: #ffe3ee;
+            text-shadow: 0 0 10px rgba(255, 60, 120, 0.9), 0 0 26px rgba(255, 20, 85, 0.55);
+            animation: creGlow 3.2s ease-in-out infinite;
+        }
+
+        @keyframes creGlow {
+            0%, 100% { opacity: 0.78; }
+            50% { opacity: 1; }
         }
 
         /* Three.js Canvas Container */
@@ -305,6 +351,9 @@
 </head>
 <body>
 
+    <!-- Romantic night background -->
+    <div id="love-bg"><canvas id="love-bg-canvas"></canvas></div>
+
     <!-- Blurred VS Code Background matching the video's exact backdrop -->
     <div id="code-backdrop">
         <div class="code-topbar">
@@ -417,6 +466,9 @@
 
     <!-- Subtle Floating HUD Controls -->
     <div id="hud-controls">
+        <!-- Credit at the top -->
+        <div class="credit-top"><span>cre HuuDuong</span></div>
+
         <!-- Bottom Hint -->
         <div class="fixed bottom-6 left-0 right-0 flex justify-center px-4">
             <div class="hint-pill px-4 py-1.5 rounded-full bg-black/40 border border-rose-500/20 backdrop-blur-md text-rose-200/80 text-xs tracking-wide text-center">
@@ -424,6 +476,115 @@
             </div>
         </div>
     </div>
+
+    <script>
+        // Background: twinkling stars, rising rose bokeh, drifting petals
+        (function loveBackground() {
+            const cv = document.getElementById('love-bg-canvas');
+            const ctx = cv.getContext('2d');
+            let W = 0, H = 0, stars = [], orbs = [], petals = [];
+            const rnd = (a, b) => a + Math.random() * (b - a);
+
+            function makeSprite(r, g, b) {
+                const s = 64, c = document.createElement('canvas');
+                c.width = c.height = s;
+                const x = c.getContext('2d');
+                const gr = x.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+                gr.addColorStop(0, 'rgba(' + r + ',' + g + ',' + b + ',1)');
+                gr.addColorStop(0.45, 'rgba(' + r + ',' + g + ',' + b + ',0.35)');
+                gr.addColorStop(1, 'rgba(' + r + ',' + g + ',' + b + ',0)');
+                x.fillStyle = gr;
+                x.fillRect(0, 0, s, s);
+                return c;
+            }
+            const sprites = [makeSprite(255, 60, 120), makeSprite(255, 140, 185), makeSprite(190, 70, 255), makeSprite(255, 200, 220)];
+
+            function newOrb(init) {
+                return { x: rnd(0, W), y: init ? rnd(0, H) : H + 60, r: rnd(14, 46), vy: rnd(6, 18),
+                         ph: rnd(0, 6.28), sw: rnd(8, 26), a: rnd(0.10, 0.28), spr: Math.floor(rnd(0, sprites.length)) };
+            }
+            function newPetal(init) {
+                return { x: rnd(0, W), y: init ? rnd(-H * 0.2, H) : rnd(-60, -10), size: rnd(5, 11), vy: rnd(14, 34),
+                         ph: rnd(0, 6.28), sw: rnd(14, 40), rot: rnd(0, 6.28), vr: rnd(-1.2, 1.2), a: rnd(0.25, 0.55), h: rnd(338, 356) };
+            }
+
+            function build() {
+                const nStars = Math.min(160, Math.round(W * H / 9000));
+                stars = Array.from({ length: nStars }, () => ({ x: rnd(0, W), y: rnd(0, H * 0.85), r: rnd(0.4, 1.4), p: rnd(0, 6.28), s: rnd(0.6, 2.2) }));
+                orbs = Array.from({ length: W < 600 ? 12 : 20 }, () => newOrb(true));
+                petals = Array.from({ length: W < 600 ? 14 : 22 }, () => newPetal(true));
+            }
+
+            function resize() {
+                const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+                W = window.innerWidth; H = window.innerHeight;
+                cv.width = W * dpr; cv.height = H * dpr;
+                cv.style.width = W + 'px'; cv.style.height = H + 'px';
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                build();
+            }
+
+            function draw(t, dt) {
+                ctx.clearRect(0, 0, W, H);
+
+                // Stars
+                ctx.fillStyle = '#ffe9f1';
+                for (const st of stars) {
+                    ctx.globalAlpha = 0.25 + 0.65 * (0.5 + 0.5 * Math.sin(t * st.s + st.p));
+                    ctx.beginPath();
+                    ctx.arc(st.x, st.y, st.r, 0, 6.2832);
+                    ctx.fill();
+                }
+
+                // Rising bokeh
+                ctx.globalCompositeOperation = 'lighter';
+                for (const o of orbs) {
+                    o.y -= o.vy * dt;
+                    if (o.y < -o.r * 2) Object.assign(o, newOrb(false));
+                    const x = o.x + Math.sin(t * 0.35 + o.ph) * o.sw;
+                    ctx.globalAlpha = o.a * (0.7 + 0.3 * Math.sin(t * 0.8 + o.ph));
+                    ctx.drawImage(sprites[o.spr], x - o.r, o.y - o.r, o.r * 2, o.r * 2);
+                }
+                ctx.globalCompositeOperation = 'source-over';
+
+                // Drifting rose petals
+                for (const p of petals) {
+                    p.y += p.vy * dt;
+                    p.rot += p.vr * dt;
+                    if (p.y > H + 30) Object.assign(p, newPetal(false));
+                    const x = p.x + Math.sin(t * 0.6 + p.ph) * p.sw;
+                    ctx.save();
+                    ctx.translate(x, p.y);
+                    ctx.rotate(p.rot);
+                    ctx.scale(1, 0.55 + 0.45 * Math.abs(Math.cos(t * 0.9 + p.ph)));
+                    ctx.globalAlpha = p.a;
+                    ctx.fillStyle = 'hsl(' + p.h + ',85%,58%)';
+                    ctx.beginPath();
+                    ctx.moveTo(0, -p.size);
+                    ctx.quadraticCurveTo(p.size * 0.9, -p.size * 0.2, 0, p.size);
+                    ctx.quadraticCurveTo(-p.size * 0.9, -p.size * 0.2, 0, -p.size);
+                    ctx.fill();
+                    ctx.restore();
+                }
+                ctx.globalAlpha = 1;
+            }
+
+            resize();
+            window.addEventListener('resize', resize);
+
+            const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if (reduce) { draw(0, 0); return; }
+
+            let last = performance.now();
+            function loop(now) {
+                const dt = Math.min((now - last) / 1000, 0.05);
+                last = now;
+                draw(now / 1000, dt);
+                requestAnimationFrame(loop);
+            }
+            requestAnimationFrame(loop);
+        })();
+    </script>
 
     <script>
         // Populate line numbers in the blurred code editor backdrop

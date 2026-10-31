@@ -191,6 +191,101 @@
             pointer-events: none;
         }
 
+        /* Name input step (before "Bắt đầu") */
+        .name-input {
+            width: min(78vw, 300px);
+            padding: 0.85rem 1.1rem;
+            border-radius: 9999px;
+            border: 1px solid rgba(255, 90, 140, 0.45);
+            background: rgba(255, 255, 255, 0.06);
+            color: #ffe9f1;
+            text-align: center;
+            font-family: 'Inter', sans-serif;
+            font-size: 16px; /* 16px stops iOS from zooming on focus */
+            letter-spacing: 0.04em;
+            outline: none;
+            box-shadow: 0 0 18px rgba(255, 40, 100, 0.25);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            /* The page disables selection globally; iOS needs this to allow typing */
+            -webkit-user-select: text;
+            user-select: text;
+        }
+
+        .name-input::placeholder {
+            color: rgba(255, 200, 220, 0.5);
+        }
+
+        .name-input:focus {
+            border-color: rgba(255, 120, 170, 0.9);
+            box-shadow: 0 0 26px rgba(255, 40, 100, 0.45);
+        }
+
+        .name-note {
+            margin-top: 0.6rem;
+            font-size: 0.7rem;
+            letter-spacing: 0.04em;
+            color: rgba(255, 200, 220, 0.45);
+        }
+
+        .stack { display: grid; justify-items: center; }
+        .stack > * { grid-area: 1 / 1; }
+
+        #start-wrap, #admin-wrap {
+            margin-top: 2.4rem;
+            transition: opacity 0.6s ease, transform 0.6s ease, visibility 0.6s;
+        }
+
+        #start-wrap.is-locked, #admin-wrap.is-locked {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transform: translateY(10px) scale(0.96);
+        }
+
+        /* Admin button in the top-right corner (only shown to the admin after "Bắt đầu") */
+        .admin-corner {
+            display: none;
+            position: fixed;
+            top: calc(env(safe-area-inset-top, 0px) + 14px);
+            right: 14px;
+            z-index: 15;
+            padding: 6px 12px;
+            border-radius: 9999px;
+            border: 1px solid rgba(255, 90, 140, 0.45);
+            background: rgba(0, 0, 0, 0.4);
+            -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+            color: rgba(255, 215, 230, 0.9);
+            font-family: 'Inter', sans-serif;
+            font-size: 12px;
+            letter-spacing: 0.04em;
+        }
+        .admin-corner.show { display: block; }
+
+        /* Admin panel (visitor list) */
+        #admin-panel {
+            position: fixed; inset: 0; z-index: 40;
+            display: flex; align-items: center; justify-content: center;
+            padding: 16px;
+            background: rgba(5, 2, 8, 0.82);
+            -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+        }
+        #admin-panel[hidden] { display: none; }
+        .admin-card {
+            width: min(92vw, 420px); max-height: 80vh;
+            display: flex; flex-direction: column;
+            padding: 16px; border-radius: 20px;
+            border: 1px solid rgba(255, 90, 140, 0.35);
+            background: rgba(25, 8, 20, 0.94);
+            color: #ffe9f1; font-family: 'Inter', sans-serif;
+        }
+        .admin-head { display: flex; justify-content: space-between; align-items: center; font-weight: 600; margin-bottom: 6px; }
+        .admin-status { font-size: 12px; color: rgba(255, 200, 220, 0.6); margin-bottom: 8px; }
+        .admin-list { list-style: none; overflow: auto; -webkit-overflow-scrolling: touch; flex: 1; }
+        .admin-list li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 2px; border-bottom: 1px solid rgba(255, 255, 255, 0.07); font-size: 14px; }
+        .admin-list li span:last-child { color: rgba(255, 200, 220, 0.6); font-size: 12px; white-space: nowrap; }
+        .admin-foot { display: flex; gap: 8px; margin-top: 12px; }
+        .admin-card button { padding: 8px 14px; border-radius: 9999px; border: 1px solid rgba(255, 90, 140, 0.45); background: rgba(255, 255, 255, 0.06); color: #ffe9f1; font-size: 13px; }
+
         /* Pulsing Rose Button */
         .start-btn-wrapper {
             position: relative;
@@ -446,7 +541,16 @@
     <!-- Initial Start Screen ("Bắt đầu") -->
     <div id="start-screen">
         <div class="text-center px-6 max-w-md mx-auto flex flex-col items-center">
-            <!-- Glowing Start Button -->
+            <!-- Step 1: visitor name -->
+            <div class="flex flex-col items-center">
+                <input id="name-input" class="name-input" type="text" maxlength="30"
+                       autocomplete="off" autocapitalize="words" enterkeyhint="done"
+                       placeholder="Nhập tên của bạn" aria-label="Nhập tên của bạn">
+            </div>
+
+            <!-- Step 2: Glowing Start Button (appears after the name is entered) -->
+            <div class="stack">
+            <div id="start-wrap" class="is-locked">
             <div class="start-btn-wrapper">
                 <div class="pulse-ring pulse-ring-1"></div>
                 <div class="pulse-ring pulse-ring-2"></div>
@@ -456,6 +560,8 @@
                     </svg>
                     <span>Bắt đầu</span>
                 </button>
+            </div>
+            </div>
             </div>
 
             <p class="mt-14 text-rose-200/60 text-xs tracking-widest font-light">
@@ -1536,6 +1642,21 @@
         // ============================================================================
         // INITIALIZATION & UI BUTTON HANDLERS
         // ============================================================================
+        // ⚙️ Điền mã GoatCounter của bạn vào đây (vd: 'huuduong' ứng với huuduong.goatcounter.com).
+        // Để trống thì tên khách chỉ nhập cho vui, không gửi đi đâu cả.
+        const GOATCOUNTER_CODE = '';
+
+        function trackVisitor(name) {
+            if (!GOATCOUNTER_CODE) return;
+            try {
+                const clean = name.replace(/[\/\\?#]/g, ' ').trim();
+                const img = new Image();
+                img.src = 'https://' + GOATCOUNTER_CODE + '.goatcounter.com/count?p=' +
+                    encodeURIComponent('/xem/' + clean) + '&t=' + encodeURIComponent(clean) +
+                    '&rnd=' + Date.now();
+            } catch (e) { /* tracking must never break the page */ }
+        }
+
         window.onload = function () {
             initThreeScene();
             animate();
@@ -1543,10 +1664,54 @@
             const startScreen = document.getElementById('start-screen');
             const startBtn = document.getElementById('start-btn');
             const hudControls = document.getElementById('hud-controls');
+            const nameInput = document.getElementById('name-input');
+            const startWrap = document.getElementById('start-wrap');
+            let nameTimer = null;
+
+            // Typing the admin keyword enters normally, then shows the "Quản trị" corner button.
+            // It only decides whether the corner button is shown; it is not a password.
+            function isAdminName() {
+                const k = ((window.HD_CONFIG && window.HD_CONFIG.adminKeyword) || '').trim().toLowerCase();
+                return !!k && nameInput.value.trim().toLowerCase() === k;
+            }
+
+            // Show "Bắt đầu" once the name is typed (Enter / tap away / pause typing)
+            function revealStart() {
+                if (nameInput.value.trim()) startWrap.classList.remove('is-locked');
+            }
+            nameInput.addEventListener('input', () => {
+                clearTimeout(nameTimer);
+                if (!nameInput.value.trim()) {
+                    startWrap.classList.add('is-locked');
+                    return;
+                }
+                nameTimer = setTimeout(revealStart, 1000);
+            });
+            nameInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    clearTimeout(nameTimer);
+                    revealStart();
+                    nameInput.blur();
+                }
+            });
+            nameInput.addEventListener('blur', () => {
+                clearTimeout(nameTimer);
+                revealStart();
+            });
 
             // Clicking "Bắt đầu"
             startBtn.addEventListener('click', () => {
                 if (isExperienceStarted) return;
+                const visitorName = nameInput.value.trim().slice(0, 30);
+                if (!visitorName) return;
+                if (isAdminName()) {
+                    // The admin is not logged as a visitor
+                    document.getElementById('admin-corner-btn').classList.add('show');
+                } else {
+                    trackVisitor(visitorName);
+                    if (window.hdLogVisit) window.hdLogVisit(visitorName);
+                }
                 isExperienceStarted = true;
                 startTime = clock.getElapsedTime();
 
@@ -1562,6 +1727,86 @@
                 }, 650);
             });
         };
+    </script>
+
+    <button id="admin-corner-btn" class="admin-corner" aria-label="Quản trị: xem danh sách người xem">Quản trị</button>
+
+    <!-- Admin panel: list of visitors (only readable by the admin Google account) -->
+    <div id="admin-panel" hidden>
+        <div class="admin-card">
+            <div class="admin-head"><span>Người đã xem</span><button id="admin-close" aria-label="Đóng">✕</button></div>
+            <div id="admin-status" class="admin-status"></div>
+            <ol id="admin-list" class="admin-list"></ol>
+            <div class="admin-foot"><button id="admin-refresh">Làm mới</button></div>
+        </div>
+    </div>
+
+    <script>
+        // ⚙️ CẤU HÌNH — điền sau khi tạo project Firebase. Để trống = tắt hoàn toàn.
+        window.HD_CONFIG = {
+            adminKeyword: 'Dsking',   // nhập tên này ở màn hình đầu → sau "Bắt đầu" hiện nút Quản trị ở góc phải trên (KHÔNG phải mật khẩu)
+            firebase: {
+                apiKey: 'AIzaSyDrjfLLltxBMIOyyIVrtr3opeAWpk84waA',
+                authDomain: 'timm-315e4.firebaseapp.com',
+                projectId: 'timm-315e4',
+                storageBucket: 'timm-315e4.firebasestorage.app',
+                messagingSenderId: '74629690555',
+                appId: '1:74629690555:web:411f4f3be4a2019e32659e'
+            }
+        };
+    </script>
+    <script type="module">
+        (async () => {
+            const cfg = window.HD_CONFIG && window.HD_CONFIG.firebase;
+            if (!cfg || !cfg.apiKey || !cfg.projectId) return;
+            try {
+                const base = 'https://www.gstatic.com/firebasejs/10.14.1/';
+                const [{ initializeApp }, fs] = await Promise.all([
+                    import(base + 'firebase-app.js'),
+                    import(base + 'firebase-firestore.js')
+                ]);
+                const app = initializeApp(cfg);
+                const db = fs.getFirestore(app);
+
+                // Visitors: write-only (name + server time)
+                window.hdLogVisit = (name) => {
+                    fs.addDoc(fs.collection(db, 'visits'), { name: String(name).slice(0, 30), at: fs.serverTimestamp() }).catch(() => {});
+                };
+
+                // Admin: the corner button (shown only after entering the admin name) loads the list
+                const panel = document.getElementById('admin-panel');
+                const list = document.getElementById('admin-list');
+                const status = document.getElementById('admin-status');
+
+                async function load() {
+                    status.textContent = 'Đang tải...';
+                    list.textContent = '';
+                    try {
+                        const snap = await fs.getDocs(fs.query(fs.collection(db, 'visits'), fs.orderBy('at', 'desc'), fs.limit(200)));
+                        status.textContent = snap.size ? snap.size + ' lượt gần nhất (mới nhất ở trên)' : 'Chưa có ai.';
+                        snap.forEach((d) => {
+                            const v = d.data();
+                            const li = document.createElement('li');
+                            const a = document.createElement('span');
+                            const b = document.createElement('span');
+                            a.textContent = v.name;   // textContent: names come from visitors, never inject as HTML
+                            b.textContent = v.at ? v.at.toDate().toLocaleString('vi-VN') : '';
+                            li.append(a, b);
+                            list.append(li);
+                        });
+                    } catch (e) {
+                        status.textContent = 'Không đọc được danh sách (kiểm tra rules Firestore).';
+                    }
+                }
+
+                document.getElementById('admin-corner-btn').addEventListener('click', () => {
+                    panel.hidden = false;
+                    load();
+                });
+                document.getElementById('admin-refresh').addEventListener('click', load);
+                document.getElementById('admin-close').addEventListener('click', () => { panel.hidden = true; });
+            } catch (e) { /* Firebase failed to load: the heart page must keep working */ }
+        })();
     </script>
 </body>
 </html>
